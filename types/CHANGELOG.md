@@ -13,6 +13,16 @@ All notable changes to this project will be documented in this file.  The format
 
 ## [Unreleased]
 
+### Added
+* Add new `bytesrepr::Error::NotRepresentable` error variant that represents values that are not representable by the serialization format.
+* Add new `Key::ChainspecRegistry` key variant under which the `ChainspecRegistry` is written.
+* Add a new type `WithdrawPurses` which is meant to represent `UnbondingPurses` as they exist in current live networks.
+
+### Changed
+* Extend `UnbondingPurses` to take a new field `new_validator` which represents the validator to whom tokens will be re-delegated.
+* Increase `DICTIONARY_ITEM_KEY_MAX_LENGTH` to 128.
+* Fixed some integer casts.
+* Change prefix of formatted string representation of `ContractPackageHash` from "contract-package-wasm" to "contract-package-". Parsing from the old format is still supported.
 
 
 ## 1.5.0
