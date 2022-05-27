@@ -1,14 +1,17 @@
 // TODO - remove once schemars stops causing warning.
 #![allow(clippy::field_reassign_with_default)]
 
+use std::collections::BTreeMap;
+
 use datasize::DataSize;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::types::json_compatibility::vectorize;
 use casper_types::{
-    Contract as DomainContract, ContractHash, ContractPackage as DomainContractPackage,
-    ContractPackageHash, ContractWasmHash, EntryPoint, NamedKey, ProtocolVersion, URef,
+    contracts::ContractPackageStatus, Contract as DomainContract, ContractHash,
+    ContractPackage as DomainContractPackage, ContractPackageHash, ContractVersionKey,
+    ContractWasmHash, EntryPoint, Group, Key, NamedKey, ProtocolVersion, URef,
 };
 
 #[derive(
@@ -62,6 +65,30 @@ impl From<&DomainContract> for Contract {
     }
 }
 
+impl From<&Contract> for DomainContract {
+    fn from(contract: &Contract) -> Self {
+        let entry_points = contract.entry_points.clone().into();
+        let named_keys = contract
+            .named_keys
+            .iter()
+            .map(|nk| {
+                (
+                    nk.name.clone(),
+                    Key::from_formatted_str(&nk.key).expect("invalid key format"),
+                )
+            })
+            .collect();
+
+        DomainContract::new(
+            contract.contract_package_hash,
+            contract.contract_wasm_hash,
+            named_keys,
+            entry_points,
+            contract.protocol_version,
+        )
+    }
+}
+
 /// Contract definition, metadata, and security container.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, DataSize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -109,5 +136,39 @@ impl From<&DomainContractPackage> for ContractPackage {
             disabled_versions,
             groups,
         }
+    }
+}
+
+impl From<&ContractPackage> for DomainContractPackage {
+    fn from(contract_package: &ContractPackage) -> Self {
+        DomainContractPackage::new(
+            contract_package.access_key,
+            contract_package
+                .versions
+                .iter()
+                .map(|v| {
+                    (
+                        ContractVersionKey::new(v.protocol_version_major, v.contract_version),
+                        v.contract_hash,
+                    )
+                })
+                .collect(),
+            contract_package
+                .disabled_versions
+                .iter()
+                .map(|v| ContractVersionKey::new(v.protocol_version_major, v.contract_version))
+                .collect(),
+            contract_package
+                .groups
+                .iter()
+                .map(|v| {
+                    (
+                        Group::new(v.group.clone()),
+                        v.keys.iter().cloned().collect(),
+                    )
+                })
+                .collect(),
+            ContractPackageStatus::Locked, // TODO: inaccurate, key missing in json_compat
+        )
     }
 }
