@@ -1,6 +1,8 @@
 // TODO - remove once schemars stops causing warning.
 #![allow(clippy::field_reassign_with_default)]
 
+use std::collections::BTreeMap;
+
 use datasize::DataSize;
 use once_cell::sync::Lazy;
 use schemars::JsonSchema;
@@ -8,8 +10,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{rpcs::docs::DocExample, types::json_compatibility::vectorize};
 use casper_types::{
-    account::{Account as ExecutionEngineAccount, AccountHash},
-    NamedKey, PublicKey, SecretKey, URef,
+    account::{Account as ExecutionEngineAccount, AccountHash, Weight},
+    contracts::NamedKeys,
+    Key, NamedKey, PublicKey, SecretKey, URef,
 };
 
 static ACCOUNT: Lazy<Account> = Lazy::new(|| {
@@ -83,6 +86,41 @@ impl From<&ExecutionEngineAccount> for Account {
                 key_management: ee_account.action_thresholds().key_management().value(),
             },
         }
+    }
+}
+
+impl From<&Account> for ExecutionEngineAccount {
+    fn from(account: &Account) -> Self {
+        let named_keys = account
+            .named_keys
+            .iter()
+            .map(|nk| {
+                (
+                    nk.name.clone(),
+                    Key::from_formatted_str(&nk.key).expect("invalid key format"),
+                )
+            })
+            .collect();
+
+        let associated_keys = account
+            .associated_keys
+            .iter()
+            .map(|ak| (ak.account_hash, Weight::new(ak.weight)))
+            .collect::<BTreeMap<AccountHash, Weight>>();
+
+        let action_thresholds = casper_types::account::ActionThresholds::new(
+            Weight::new(account.action_thresholds.deployment),
+            Weight::new(account.action_thresholds.key_management),
+        )
+        .expect("invalid thresholds");
+
+        ExecutionEngineAccount::new(
+            account.account_hash,
+            named_keys,
+            account.main_purse,
+            associated_keys.into(),
+            action_thresholds,
+        )
     }
 }
 

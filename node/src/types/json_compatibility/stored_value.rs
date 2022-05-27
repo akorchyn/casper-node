@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use casper_types::{
     bytesrepr::{self, ToBytes},
     system::auction::{Bid, EraInfo, UnbondingPurse},
-    CLValue, DeployInfo, StoredValue as ExecutionEngineStoredValue, Transfer,
+    CLValue, ContractWasm, DeployInfo, StoredValue as ExecutionEngineStoredValue, Transfer,
 };
 
 use super::{Account, Contract, ContractPackage};
@@ -75,5 +75,26 @@ impl TryFrom<ExecutionEngineStoredValue> for StoredValue {
         };
 
         Ok(stored_value)
+    }
+}
+
+impl From<StoredValue> for ExecutionEngineStoredValue {
+    fn from(stored_value: StoredValue) -> Self {
+        match stored_value {
+            StoredValue::CLValue(x) => ExecutionEngineStoredValue::CLValue(x),
+            StoredValue::Account(x) => ExecutionEngineStoredValue::Account((&x).into()),
+            StoredValue::ContractWasm(x) => ExecutionEngineStoredValue::ContractWasm(
+                ContractWasm::new(base16::decode(&x).expect("invalid hex encoding")),
+            ),
+            StoredValue::Contract(x) => ExecutionEngineStoredValue::Contract((&x).into()),
+            StoredValue::ContractPackage(x) => {
+                ExecutionEngineStoredValue::ContractPackage((&x).into())
+            }
+            StoredValue::Transfer(x) => ExecutionEngineStoredValue::Transfer(x),
+            StoredValue::DeployInfo(x) => ExecutionEngineStoredValue::DeployInfo(x),
+            StoredValue::EraInfo(x) => ExecutionEngineStoredValue::EraInfo(x),
+            StoredValue::Bid(x) => ExecutionEngineStoredValue::Bid(x),
+            StoredValue::Withdraw(x) => ExecutionEngineStoredValue::Withdraw(x),
+        }
     }
 }
