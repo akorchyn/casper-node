@@ -1,8 +1,6 @@
 // TODO - remove once schemars stops causing warning.
 #![allow(clippy::field_reassign_with_default)]
 
-use std::collections::BTreeMap;
-
 use datasize::DataSize;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

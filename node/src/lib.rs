@@ -39,7 +39,7 @@ pub mod crypto;
 pub mod types;
 
 pub use components::{
-    contract_runtime,
+    contract_runtime, event_stream_server,
     rpc_server::rpcs,
     storage::{self, Config as StorageConfig},
 };
