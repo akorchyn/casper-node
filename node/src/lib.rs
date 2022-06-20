@@ -37,7 +37,7 @@ pub mod cli;
 pub mod types;
 pub mod utils;
 pub use components::{
-    contract_runtime,
+    contract_runtime, event_stream_server,
     rpc_server::rpcs,
     storage::{self, Config as StorageConfig},
 };

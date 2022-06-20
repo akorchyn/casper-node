@@ -51,7 +51,7 @@ pub use config::Config;
 pub(crate) use event::Event;
 use event_indexer::{EventIndex, EventIndexer};
 use sse_server::ChannelsAndFilter;
-pub(crate) use sse_server::SseData;
+pub use sse_server::SseData;
 
 /// This is used to define the number of events to buffer in the tokio broadcast channel to help
 /// slower clients to try to avoid missing events (See
