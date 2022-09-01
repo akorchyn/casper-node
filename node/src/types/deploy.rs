@@ -523,6 +523,10 @@ pub struct Approval {
 }
 
 impl Approval {
+    pub fn new(signer: PublicKey, signature: Signature) -> Approval {
+        Approval { signer, signature }
+    }
+
     /// Creates an approval for the given deploy hash using the given secret key.
     pub fn create(hash: &DeployHash, secret_key: &SecretKey) -> Self {
         let signer = PublicKey::from(secret_key);
@@ -655,10 +659,36 @@ impl Deploy {
         secret_key: &SecretKey,
         account: Option<PublicKey>,
     ) -> Deploy {
+        let account = account.unwrap_or_else(|| PublicKey::from(secret_key));
+
+        let mut deploy = Deploy::new_unsigned(
+            timestamp,
+            ttl,
+            gas_price,
+            dependencies,
+            chain_name,
+            payment,
+            session,
+            account,
+        );
+
+        deploy.sign(secret_key);
+        deploy
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_unsigned(
+        timestamp: Timestamp,
+        ttl: TimeDiff,
+        gas_price: u64,
+        dependencies: Vec<DeployHash>,
+        chain_name: String,
+        payment: ExecutableDeployItem,
+        session: ExecutableDeployItem,
+        account: PublicKey,
+    ) -> Deploy {
         let serialized_body = serialize_body(&payment, &session);
         let body_hash = Digest::hash(&serialized_body);
-
-        let account = account.unwrap_or_else(|| PublicKey::from(secret_key));
 
         // Remove duplicates.
         let dependencies = dependencies.into_iter().unique().collect();
@@ -674,7 +704,7 @@ impl Deploy {
         let serialized_header = serialize_header(&header);
         let hash = DeployHash::new(Digest::hash(&serialized_header));
 
-        let mut deploy = Deploy {
+        let deploy = Deploy {
             hash,
             header,
             payment,
@@ -683,13 +713,16 @@ impl Deploy {
             is_valid: None,
         };
 
-        deploy.sign(secret_key);
         deploy
     }
 
     /// Adds a signature of this deploy's hash to its approvals.
     pub fn sign(&mut self, secret_key: &SecretKey) {
         let approval = Approval::create(&self.hash, secret_key);
+        self.approvals.insert(approval);
+    }
+
+    pub fn add_approval(&mut self, approval: Approval) {
         self.approvals.insert(approval);
     }
 
